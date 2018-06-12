@@ -357,6 +357,10 @@ func (s *Ethereum) StartMining(local bool) error {
 	return nil
 }
 
+func (s *Ethereum) CommitSpoofedWork(parentHash common.Hash, time big.Int) {
+	s.miner.CommitSpoofedWork(parentHash, time)
+}
+
 func (s *Ethereum) StopMining()         { s.miner.Stop() }
 func (s *Ethereum) IsMining() bool      { return s.miner.Mining() }
 func (s *Ethereum) Miner() *miner.Miner { return s.miner }

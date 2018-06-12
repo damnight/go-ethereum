@@ -171,6 +171,12 @@ func (api *PrivateMinerAPI) Stop() bool {
 	return true
 }
 
+// CommitSpoofedWork creates new work with secified parent and time
+func (api *PrivateMinerAPI) CommitSpoofedWork(parentHash common.Hash, time big.Int) bool {
+	api.e.CommitSpoofedWork(parentHash, time)
+	return true
+}
+
 // SetExtra sets the extra data string that is included when this miner mines a block.
 func (api *PrivateMinerAPI) SetExtra(extra string) (bool, error) {
 	if err := api.e.Miner().SetExtra([]byte(extra)); err != nil {

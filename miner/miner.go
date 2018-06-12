@@ -19,6 +19,7 @@ package miner
 
 import (
 	"fmt"
+	"math/big"
 	"sync/atomic"
 
 	"github.com/ethereum/go-ethereum/accounts"
@@ -122,6 +123,10 @@ func (self *Miner) Stop() {
 	self.worker.stop()
 	atomic.StoreInt32(&self.mining, 0)
 	atomic.StoreInt32(&self.shouldStart, 0)
+}
+
+func (self *Miner) CommitSpoofedWork(parentHash common.Hash, time big.Int) {
+	self.worker.commitSpoofedWork(parentHash, time)
 }
 
 func (self *Miner) Register(agent Agent) {

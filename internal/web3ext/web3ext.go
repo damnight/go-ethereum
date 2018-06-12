@@ -470,6 +470,11 @@ web3._extend({
 			inputFormatter: [web3._extend.formatters.inputAddressFormatter]
 		}),
 		new web3._extend.Method({
+			name: 'commitSpoofedWork',
+			call: 'miner_commitSpoofedWork',
+			params: 2,
+		}),
+		new web3._extend.Method({
 			name: 'setExtra',
 			call: 'miner_setExtra',
 			params: 1
