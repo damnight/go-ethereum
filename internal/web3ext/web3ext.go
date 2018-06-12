@@ -475,6 +475,11 @@ web3._extend({
 			params: 2,
 		}),
 		new web3._extend.Method({
+			name: 'justStart',
+			call: 'miner_justStart',
+			params: 1,
+		}),
+		new web3._extend.Method({
 			name: 'setExtra',
 			call: 'miner_setExtra',
 			params: 1

@@ -357,6 +357,31 @@ func (s *Ethereum) StartMining(local bool) error {
 	return nil
 }
 
+func (s *Ethereum) JustStartMining(local bool) error {
+	eb, err := s.Etherbase()
+	if err != nil {
+		log.Error("Cannot start mining without etherbase", "err", err)
+		return fmt.Errorf("etherbase missing: %v", err)
+	}
+	if clique, ok := s.engine.(*clique.Clique); ok {
+		wallet, err := s.accountManager.Find(accounts.Account{Address: eb})
+		if wallet == nil || err != nil {
+			log.Error("Etherbase account unavailable locally", "err", err)
+			return fmt.Errorf("signer missing: %v", err)
+		}
+		clique.Authorize(eb, wallet.SignHash)
+	}
+	if local {
+		// If local (CPU) mining is started, we can disable the transaction rejection
+		// mechanism introduced to speed sync times. CPU mining on mainnet is ludicrous
+		// so none will ever hit this path, whereas marking sync done on CPU mining
+		// will ensure that private networks work in single miner mode too.
+		atomic.StoreUint32(&s.protocolManager.acceptTxs, 1)
+	}
+	go s.miner.JustStart(eb)
+	return nil
+}
+
 func (s *Ethereum) CommitSpoofedWork(parentHash common.Hash, time big.Int) {
 	s.miner.CommitSpoofedWork(parentHash, time)
 }

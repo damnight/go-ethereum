@@ -125,6 +125,20 @@ func (self *Miner) Stop() {
 	atomic.StoreInt32(&self.shouldStart, 0)
 }
 
+func (self *Miner) JustStart(coinbase common.Address) {
+	atomic.StoreInt32(&self.shouldStart, 1)
+	self.SetEtherbase(coinbase)
+
+	if atomic.LoadInt32(&self.canStart) == 0 {
+		log.Info("Network syncing, will start miner afterwards")
+		return
+	}
+	atomic.StoreInt32(&self.mining, 1)
+
+	log.Info("Starting mining operation")
+	self.worker.start()
+}
+
 func (self *Miner) CommitSpoofedWork(parentHash common.Hash, time big.Int) {
 	self.worker.commitSpoofedWork(parentHash, time)
 }

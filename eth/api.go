@@ -171,6 +171,34 @@ func (api *PrivateMinerAPI) Stop() bool {
 	return true
 }
 
+// JustStart starts mining
+func (api *PrivateMinerAPI) JustStart(threads *int) error {
+	// Set the number of threads if the seal engine supports it
+	if threads == nil {
+		threads = new(int)
+	} else if *threads == 0 {
+		*threads = -1 // Disable the miner from within
+	}
+	type threaded interface {
+		SetThreads(threads int)
+	}
+	if th, ok := api.e.engine.(threaded); ok {
+		log.Info("Updated mining threads", "threads", *threads)
+		th.SetThreads(*threads)
+	}
+	// Start the miner and return
+	if !api.e.IsMining() {
+		// Propagate the initial price point to the transaction pool
+		api.e.lock.RLock()
+		price := api.e.gasPrice
+		api.e.lock.RUnlock()
+
+		api.e.txPool.SetGasPrice(price)
+		return api.e.JustStartMining(true)
+	}
+	return nil
+}
+
 // CommitSpoofedWork creates new work with secified parent and time
 func (api *PrivateMinerAPI) CommitSpoofedWork(parentHash common.Hash, time big.Int) bool {
 	api.e.CommitSpoofedWork(parentHash, time)
