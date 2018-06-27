@@ -592,10 +592,10 @@ func (self *worker) commitSpoofedWork(parentHash common.Hash, tstamp big.Int) {
 	}
 	// We only care about logging if we're actually mining.
 	if atomic.LoadInt32(&self.mining) == 1 {
-		log.Info("Commit new SPOOFED mining work", "number", work.Block.Number(), "txs", work.tcount, "uncles", len(uncles), "hash", work.Block.Hash, "time", tstamp)
+		log.Info("Commit new SPOOFED mining work", "number", work.Block.Number(), "txs", work.tcount, "uncles", len(uncles), "time", tstamp.Int64())
 		self.unconfirmed.Shift(work.Block.NumberU64() - 1)
 	} else {
-		log.Info("offline SPOOFED mining work", "number", work.Block.Number(), "txs", work.tcount, "uncles", len(uncles), "hash", work.Block.Hash, "time", tstamp)
+		log.Info("offline SPOOFED mining work", "number", work.Block.Number(), "txs", work.tcount, "uncles", len(uncles), "time", tstamp.Int64())
 	}
 	self.push(work)
 	self.updateSnapshot()
