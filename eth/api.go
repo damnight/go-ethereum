@@ -200,9 +200,8 @@ func (api *PrivateMinerAPI) JustStart(threads *int) error {
 }
 
 // CommitSpoofedWork creates new work with secified parent and time
-func (api *PrivateMinerAPI) CommitSpoofedWork(parentHash common.Hash, time big.Int) bool {
-	api.e.CommitSpoofedWork(parentHash, time)
-	return true
+func (api *PrivateMinerAPI) CommitSpoofedWork(parentHash common.Hash, time big.Int) common.Hash {
+	return api.e.CommitSpoofedWork(parentHash, time)
 }
 
 // SetExtra sets the extra data string that is included when this miner mines a block.

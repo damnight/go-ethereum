@@ -58,6 +58,10 @@ type Agent interface {
 	Stop()
 	Start()
 	GetHashRate() int64
+	SetWaitGroup(wg *sync.WaitGroup)
+	Finished() int32
+	SetFinishedOff()
+	SealedHash() common.Hash
 }
 
 // Work is the workers current environment and holds
@@ -344,15 +348,21 @@ func (self *worker) wait() {
 
 // push sends a new work task to currently live miner agents.
 func (self *worker) push(work *Work) {
+	var wg sync.WaitGroup
+	wg.Add(1)
+
 	if atomic.LoadInt32(&self.mining) != 1 {
 		return
 	}
 	for agent := range self.agents {
 		atomic.AddInt32(&self.atWork, 1)
 		if ch := agent.Work(); ch != nil {
+			agent.SetFinishedOff()
+			agent.SetWaitGroup(&wg)
 			ch <- work
 		}
 	}
+	wg.Wait()
 }
 
 // makeCurrent creates a new environment for the current cycle.
@@ -493,7 +503,7 @@ func (self *worker) commitNewWork() {
 	self.updateSnapshot()
 }
 
-func (self *worker) commitSpoofedWork(parentHash common.Hash, tstamp big.Int) {
+func (self *worker) commitSpoofedWork(parentHash common.Hash, tstamp big.Int) common.Hash {
 	self.mu.Lock()
 	defer self.mu.Unlock()
 	self.uncleMu.Lock()
@@ -529,7 +539,7 @@ func (self *worker) commitSpoofedWork(parentHash common.Hash, tstamp big.Int) {
 	}
 	if err := self.engine.Prepare(self.chain, header); err != nil {
 		log.Error("Failed to prepare header for mining", "err", err)
-		return
+		return common.Hash{}
 	}
 	// If we are care about TheDAO hard-fork check whether to override the extra-data or not
 	if daoBlock := self.config.DAOForkBlock; daoBlock != nil {
@@ -548,7 +558,7 @@ func (self *worker) commitSpoofedWork(parentHash common.Hash, tstamp big.Int) {
 	err := self.makeCurrent(parent, header)
 	if err != nil {
 		log.Error("Failed to create mining context", "err", err)
-		return
+		return common.Hash{}
 	}
 	// Create the current work task and check any fork transitions needed
 	work := self.current
@@ -558,7 +568,7 @@ func (self *worker) commitSpoofedWork(parentHash common.Hash, tstamp big.Int) {
 	pending, err := self.eth.TxPool().Pending()
 	if err != nil {
 		log.Error("Failed to fetch pending transactions", "err", err)
-		return
+		return common.Hash{}
 	}
 	txs := types.NewTransactionsByPriceAndNonce(self.current.signer, pending)
 	work.commitTransactions(self.mux, txs, self.chain, self.coinbase)
@@ -588,7 +598,7 @@ func (self *worker) commitSpoofedWork(parentHash common.Hash, tstamp big.Int) {
 	// Create the new block to seal with the consensus engine
 	if work.Block, err = self.engine.Finalize(self.chain, header, work.state, work.txs, uncles, work.receipts); err != nil {
 		log.Error("Failed to finalize block for sealing", "err", err)
-		return
+		return common.Hash{}
 	}
 	// We only care about logging if we're actually mining.
 	if atomic.LoadInt32(&self.mining) == 1 {
@@ -599,6 +609,14 @@ func (self *worker) commitSpoofedWork(parentHash common.Hash, tstamp big.Int) {
 	}
 	self.push(work)
 	self.updateSnapshot()
+
+	result := common.Hash{}
+	for agent := range self.agents {
+		if agent.Finished() == 1 {
+			result = agent.SealedHash()
+		}
+	}
+	return result
 }
 
 func (self *worker) commitUncle(work *Work, uncle *types.Header) error {

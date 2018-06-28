@@ -382,8 +382,8 @@ func (s *Ethereum) JustStartMining(local bool) error {
 	return nil
 }
 
-func (s *Ethereum) CommitSpoofedWork(parentHash common.Hash, time big.Int) {
-	s.miner.CommitSpoofedWork(parentHash, time)
+func (s *Ethereum) CommitSpoofedWork(parentHash common.Hash, time big.Int) common.Hash {
+	return s.miner.CommitSpoofedWork(parentHash, time)
 }
 
 func (s *Ethereum) StopMining()         { s.miner.Stop() }

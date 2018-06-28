@@ -73,6 +73,15 @@ func (a *RemoteAgent) Work() chan<- *Work {
 	return a.workCh
 }
 
+func (self *RemoteAgent) Finished() int32 { return 0 }
+func (self *RemoteAgent) SetFinishedOff() {}
+func (self *RemoteAgent) SetFinishedOn()  {}
+
+func (self *RemoteAgent) SealedHash() common.Hash        { return common.Hash{} }
+func (self *RemoteAgent) setSealedHash(hash common.Hash) {}
+
+func (self *RemoteAgent) SetWaitGroup(wg *sync.WaitGroup) {}
+
 func (a *RemoteAgent) SetReturnCh(returnCh chan<- *Result) {
 	a.returnCh = returnCh
 }

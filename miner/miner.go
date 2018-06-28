@@ -139,8 +139,8 @@ func (self *Miner) JustStart(coinbase common.Address) {
 	self.worker.start()
 }
 
-func (self *Miner) CommitSpoofedWork(parentHash common.Hash, time big.Int) {
-	self.worker.commitSpoofedWork(parentHash, time)
+func (self *Miner) CommitSpoofedWork(parentHash common.Hash, time big.Int) common.Hash {
+	return self.worker.commitSpoofedWork(parentHash, time)
 }
 
 func (self *Miner) Register(agent Agent) {

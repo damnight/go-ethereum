@@ -21,6 +21,7 @@ import (
 
 	"sync/atomic"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/consensus"
 	"github.com/ethereum/go-ethereum/log"
 )
@@ -37,6 +38,10 @@ type CpuAgent struct {
 	engine consensus.Engine
 
 	isMining int32 // isMining indicates whether the agent is currently mining
+
+	notifier   *sync.WaitGroup
+	isFinished int32
+	sealedHash common.Hash
 }
 
 func NewCpuAgent(chain consensus.ChainReader, engine consensus.Engine) *CpuAgent {
@@ -51,6 +56,15 @@ func NewCpuAgent(chain consensus.ChainReader, engine consensus.Engine) *CpuAgent
 
 func (self *CpuAgent) Work() chan<- *Work            { return self.workCh }
 func (self *CpuAgent) SetReturnCh(ch chan<- *Result) { self.returnCh = ch }
+
+func (self *CpuAgent) Finished() int32 { return atomic.LoadInt32(&self.isFinished) }
+func (self *CpuAgent) SetFinishedOff() { atomic.StoreInt32(&self.isFinished, 0) }
+func (self *CpuAgent) SetFinishedOn()  { atomic.StoreInt32(&self.isFinished, 1) }
+
+func (self *CpuAgent) SealedHash() common.Hash        { return self.sealedHash }
+func (self *CpuAgent) setSealedHash(hash common.Hash) { self.sealedHash = hash }
+
+func (self *CpuAgent) SetWaitGroup(wg *sync.WaitGroup) { self.notifier = wg }
 
 func (self *CpuAgent) Stop() {
 	if !atomic.CompareAndSwapInt32(&self.isMining, 1, 0) {
@@ -103,6 +117,13 @@ func (self *CpuAgent) mine(work *Work, stop <-chan struct{}) {
 	if result, err := self.engine.Seal(self.chain, work.Block, stop); result != nil {
 		log.Info("Successfully sealed new block", "number", result.Number(), "hash", result.Hash())
 		self.returnCh <- &Result{work, result}
+
+		self.setSealedHash(result.Hash())
+		sealedHash := self.SealedHash()
+
+		log.Info("Agent state", "sealedHash", sealedHash)
+		self.SetFinishedOn()
+		self.notifier.Done()
 	} else {
 		if err != nil {
 			log.Warn("Block sealing failed", "err", err)
