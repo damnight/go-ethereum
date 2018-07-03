@@ -419,6 +419,16 @@ web3._extend({
 			inputFormatter: [web3._extend.formatters.inputTransactionFormatter]
 		}),
 		new web3._extend.Method({
+			name: 'getBlocksFromHash',
+			call: 'eth_getBlocksFromHash',
+			params: 2
+		}),
+		new web3._extend.Method({
+			name: 'rollback',
+			call: 'eth_rollback',
+			params: 1
+		}),
+		new web3._extend.Method({
 			name: 'getRawTransaction',
 			call: 'eth_getRawTransactionByHash',
 			params: 1

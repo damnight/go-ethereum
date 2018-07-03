@@ -66,6 +66,24 @@ func (api *PublicEthereumAPI) Hashrate() hexutil.Uint64 {
 	return hexutil.Uint64(api.e.Miner().HashRate())
 }
 
+// GetBlocksFromHash returns an array of blocks from the hash till n-1 ancestors
+func (api *PublicEthereumAPI) GetBlocksFromHash(hash common.Hash, n int) (blocks []common.Hash) {
+	blockArray := api.e.BlockChain().GetBlocksFromHash(hash, n)
+
+	var blocksHash []common.Hash
+	for i := range blockArray {
+		blocksHash = append(blocksHash, blockArray[i].Hash())
+	}
+
+	return blocksHash
+}
+
+// Rollback returns rewinds chain
+func (api *PublicEthereumAPI) Rollback(chain []common.Hash) bool {
+	api.e.BlockChain().Rollback(chain)
+	return true
+}
+
 // PublicMinerAPI provides an API to control the miner.
 // It offers only methods that operate on data that pose no security risk when it is publicly accessible.
 type PublicMinerAPI struct {
