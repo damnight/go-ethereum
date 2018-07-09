@@ -20,6 +20,7 @@ package fetcher
 import (
 	"errors"
 	"math/rand"
+	"sync/atomic"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -143,6 +144,8 @@ type Fetcher struct {
 	fetchingHook       func([]common.Hash)     // Method to call upon starting a block (eth/61) or header (eth/62) fetch
 	completingHook     func([]common.Hash)     // Method to call upon starting a block body fetch (eth/62)
 	importedHook       func(*types.Block)      // Method to call upon successful block import (both eth/61 and eth/62)
+
+	procInterrupt int32 // used to stop/start sync
 }
 
 // New creates a block fetcher to retrieve blocks based on hash announcements.
@@ -169,6 +172,7 @@ func New(getBlock blockRetrievalFn, verifyHeader headerVerifierFn, broadcastBloc
 		chainHeight:    chainHeight,
 		insertChain:    insertChain,
 		dropPeer:       dropPeer,
+		procInterrupt:  0,
 	}
 }
 
@@ -182,6 +186,21 @@ func (f *Fetcher) Start() {
 // operations.
 func (f *Fetcher) Stop() {
 	close(f.quit)
+}
+
+func (f *Fetcher) ProcInterrupt() bool {
+	if atomic.LoadInt32(&f.procInterrupt) == 0 {
+		return false
+	}
+	return true
+}
+func (f *Fetcher) StopSync() {
+	log.Info("Sync stopped")
+	atomic.StoreInt32(&f.procInterrupt, 1)
+}
+func (f *Fetcher) ResumeSync() {
+	log.Info("Sync resumed")
+	atomic.StoreInt32(&f.procInterrupt, 0)
 }
 
 // Notify announces the fetcher of the potential availability of a new block in
@@ -287,6 +306,9 @@ func (f *Fetcher) loop() {
 			if time.Since(announce.time) > fetchTimeout {
 				f.forgetHash(hash)
 			}
+		}
+		if f.ProcInterrupt() {
+			continue
 		}
 		// Import any queued blocks that could potentially fit
 		height := f.chainHeight()

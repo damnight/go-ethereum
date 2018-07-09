@@ -419,6 +419,16 @@ web3._extend({
 			inputFormatter: [web3._extend.formatters.inputTransactionFormatter]
 		}),
 		new web3._extend.Method({
+			name: 'stopSync',
+			call: 'eth_stopSync',
+			params: 0
+		}),
+		new web3._extend.Method({
+			name: 'resumeSync',
+			call: 'eth_resumeSync',
+			params: 0
+		}),
+		new web3._extend.Method({
 			name: 'getBlocksFromHash',
 			call: 'eth_getBlocksFromHash',
 			params: 2

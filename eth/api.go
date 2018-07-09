@@ -66,6 +66,18 @@ func (api *PublicEthereumAPI) Hashrate() hexutil.Uint64 {
 	return hexutil.Uint64(api.e.Miner().HashRate())
 }
 
+// StopSync stops sync process
+func (api *PublicEthereumAPI) StopSync() bool {
+	api.e.StopSync()
+	return true
+}
+
+// ResumeSync resumes sync process
+func (api *PublicEthereumAPI) ResumeSync() bool {
+	api.e.ResumeSync()
+	return true
+}
+
 // GetBlocksFromHash returns an array of blocks from the hash till n-1 ancestors
 func (api *PublicEthereumAPI) GetBlocksFromHash(hash common.Hash, n int) (blocks []common.Hash) {
 	blockArray := api.e.BlockChain().GetBlocksFromHash(hash, n)
