@@ -51,6 +51,10 @@ type RemoteAgent struct {
 	hashrate   map[common.Hash]hashrate
 
 	running int32 // running indicates whether the agent is active. Call atomically
+
+	notifier   *sync.WaitGroup
+	isFinished int32
+	sealedHash common.Hash
 }
 
 func NewRemoteAgent(chain consensus.ChainReader, engine consensus.Engine) *RemoteAgent {
@@ -73,14 +77,14 @@ func (a *RemoteAgent) Work() chan<- *Work {
 	return a.workCh
 }
 
-func (self *RemoteAgent) Finished() int32 { return 0 }
-func (self *RemoteAgent) SetFinishedOff() {}
-func (self *RemoteAgent) SetFinishedOn()  {}
+func (a *RemoteAgent) Finished() int32 { return atomic.LoadInt32(&a.isFinished) }
+func (a *RemoteAgent) SetFinishedOff() { atomic.StoreInt32(&a.isFinished, 0) }
+func (a *RemoteAgent) SetFinishedOn()  { atomic.StoreInt32(&a.isFinished, 1) }
 
-func (self *RemoteAgent) SealedHash() common.Hash        { return common.Hash{} }
-func (self *RemoteAgent) setSealedHash(hash common.Hash) {}
+func (a *RemoteAgent) SealedHash() common.Hash        { return a.sealedHash }
+func (a *RemoteAgent) setSealedHash(hash common.Hash) { a.sealedHash = hash }
 
-func (self *RemoteAgent) SetWaitGroup(wg *sync.WaitGroup) {}
+func (a *RemoteAgent) SetWaitGroup(wg *sync.WaitGroup) { a.notifier = wg }
 
 func (a *RemoteAgent) SetReturnCh(returnCh chan<- *Result) {
 	a.returnCh = returnCh
@@ -163,6 +167,13 @@ func (a *RemoteAgent) SubmitWork(nonce types.BlockNonce, mixDigest, hash common.
 		return false
 	}
 	block := work.Block.WithSeal(result)
+
+	a.setSealedHash(result.Hash())
+	sealedHash := a.SealedHash()
+
+	log.Info("Agent state", "sealedHash", sealedHash)
+	a.SetFinishedOn()
+	a.notifier.Done()
 
 	// Solutions seems to be valid, return to the miner and notify acceptance
 	a.returnCh <- &Result{work, block}
