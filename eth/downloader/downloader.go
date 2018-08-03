@@ -148,6 +148,8 @@ type Downloader struct {
 	bodyFetchHook    func([]*types.Header) // Method to call upon starting a block body fetch
 	receiptFetchHook func([]*types.Header) // Method to call upon starting a receipt fetch
 	chainInsertHook  func([]*fetchResult)  // Method to call upon inserting a chain of blocks (possibly in multiple invocations)
+
+	procInterrupt int32 // used to stop/start sync
 }
 
 // LightChain encapsulates functions required to synchronise a light chain.
@@ -197,6 +199,10 @@ type BlockChain interface {
 	InsertReceiptChain(types.Blocks, []types.Receipts) (int, error)
 }
 
+func (d *Downloader) ProcInterrupt() bool { return atomic.LoadInt32(&d.procInterrupt) == 0 }
+func (d *Downloader) ResumeSync()         { atomic.StoreInt32(&d.procInterrupt, 0) }
+func (d *Downloader) StopSync()           { atomic.StoreInt32(&d.procInterrupt, 1) }
+
 // New creates a new downloader to fetch hashes and blocks from remote peers.
 func New(mode SyncMode, stateDb ethdb.Database, mux *event.TypeMux, chain BlockChain, lightchain LightChain, dropPeer peerDropFn) *Downloader {
 	if lightchain == nil {
@@ -227,6 +233,7 @@ func New(mode SyncMode, stateDb ethdb.Database, mux *event.TypeMux, chain BlockC
 			processed: rawdb.ReadFastTrieProgress(stateDb),
 		},
 		trackStateReq: make(chan *stateReq),
+		procInterrupt: 0,
 	}
 	go dl.qosTuner()
 	go dl.stateFetcher()
@@ -413,6 +420,9 @@ func (d *Downloader) syncWithPeer(p *peerConnection, hash common.Hash, td *big.I
 	}()
 	if p.version < 62 {
 		return errTooOld
+	}
+	if d.ProcInterrupt() {
+		return errBusy
 	}
 
 	log.Debug("Synchronising with the network", "peer", p.id, "eth", p.version, "head", hash, "td", td, "mode", d.mode)

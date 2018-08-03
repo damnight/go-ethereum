@@ -188,20 +188,9 @@ func (f *Fetcher) Stop() {
 	close(f.quit)
 }
 
-func (f *Fetcher) ProcInterrupt() bool {
-	if atomic.LoadInt32(&f.procInterrupt) == 0 {
-		return false
-	}
-	return true
-}
-func (f *Fetcher) StopSync() {
-	log.Info("Sync stopped")
-	atomic.StoreInt32(&f.procInterrupt, 1)
-}
-func (f *Fetcher) ResumeSync() {
-	log.Info("Sync resumed")
-	atomic.StoreInt32(&f.procInterrupt, 0)
-}
+func (f *Fetcher) ProcInterrupt() bool { return atomic.LoadInt32(&f.procInterrupt) == 0 }
+func (f *Fetcher) ResumeTimer()        { atomic.StoreInt32(&f.procInterrupt, 0) }
+func (f *Fetcher) StopTimer()          { atomic.StoreInt32(&f.procInterrupt, 1) }
 
 // Notify announces the fetcher of the potential availability of a new block in
 // the network.

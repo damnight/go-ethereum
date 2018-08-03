@@ -66,6 +66,18 @@ func (api *PublicEthereumAPI) Hashrate() hexutil.Uint64 {
 	return hexutil.Uint64(api.e.Miner().HashRate())
 }
 
+// StopTimer stops timer process
+func (api *PublicEthereumAPI) StopTimer() bool {
+	api.e.StopTimer()
+	return true
+}
+
+// ResumeTimer resumes timer process
+func (api *PublicEthereumAPI) ResumeTimer() bool {
+	api.e.ResumeTimer()
+	return true
+}
+
 // StopSync stops sync process
 func (api *PublicEthereumAPI) StopSync() bool {
 	api.e.StopSync()

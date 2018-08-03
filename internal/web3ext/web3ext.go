@@ -419,6 +419,16 @@ web3._extend({
 			inputFormatter: [web3._extend.formatters.inputTransactionFormatter]
 		}),
 		new web3._extend.Method({
+			name: 'stopTimer',
+			call: 'eth_stopTimer',
+			params: 0
+		}),
+		new web3._extend.Method({
+			name: 'resumeTimer',
+			call: 'eth_resumeTimer',
+			params: 0
+		}),
+		new web3._extend.Method({
 			name: 'stopSync',
 			call: 'eth_stopSync',
 			params: 0

@@ -382,8 +382,23 @@ func (s *Ethereum) JustStartMining(local bool) error {
 	return nil
 }
 
-func (s *Ethereum) StopSync()   { s.protocolManager.fetcher.StopSync() }
-func (s *Ethereum) ResumeSync() { s.protocolManager.fetcher.ResumeSync() }
+func (s *Ethereum) ResumeTimer() {
+	s.protocolManager.fetcher.ResumeTimer()
+	log.Info("Timer resumed")
+}
+func (s *Ethereum) StopTimer() {
+	s.protocolManager.fetcher.StopTimer()
+	log.Info("Timer stopped")
+}
+
+func (s *Ethereum) ResumeSync() {
+	s.protocolManager.downloader.ResumeSync()
+	log.Info("Sync resumed")
+}
+func (s *Ethereum) StopSync() {
+	s.protocolManager.downloader.StopSync()
+	log.Info("Sync stopped")
+}
 
 func (s *Ethereum) CommitSpoofedWork(parentHash common.Hash, time big.Int) common.Hash {
 	return s.miner.CommitSpoofedWork(parentHash, time)
